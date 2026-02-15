@@ -98,11 +98,10 @@ def execute_cypher_search(cypher_query: str) -> str:
         return f"Cypher Execution Error: {str(e)}"
 
 if __name__ == "__main__":
-    # Render provides the PORT environment variable. 
-    # FastMCP uses 'sse' transport for web deployments.
+    import os
+    # Render assigns a dynamic port via the PORT environment variable
     port = int(os.getenv("PORT", 8000))
     
-    # We use mcp.run with transport='sse'
-    # Note: FastMCP automatically handles the host/port via Uvicorn 
-    # when transport is set to 'sse'.
-    mcp.run(transport='sse')
+    # Explicitly bind to 0.0.0.0 so the service is accessible externally
+    # and pass the dynamically assigned port.
+    mcp.run(transport='sse', host="0.0.0.0", port=port)
