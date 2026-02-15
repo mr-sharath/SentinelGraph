@@ -98,4 +98,6 @@ def execute_cypher_search(cypher_query: str) -> str:
         return f"Cypher Execution Error: {str(e)}"
 
 if __name__ == "__main__":
-    mcp.run()
+    # Switching from stdio to SSE for Cloud Deployment
+    # This allows Render and Dify to reach your server over HTTP
+    mcp.run(transport='sse')
