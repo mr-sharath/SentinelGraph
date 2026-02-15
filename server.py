@@ -97,11 +97,17 @@ def execute_cypher_search(cypher_query: str) -> str:
     except Exception as e:
         return f"Cypher Execution Error: {str(e)}"
 
+import uvicorn
+import os
+
 if __name__ == "__main__":
-    import os
-    # Render assigns a dynamic port via the PORT environment variable
+    # 1. Get the underlying Starlette app for SSE transport
+    # The method is sse_app(), which is specifically for this purpose
+    app = mcp.sse_app()
+    
+    # 2. Get the Port from Render's environment (standard practice)
     port = int(os.getenv("PORT", 8000))
     
-    # Explicitly bind to 0.0.0.0 so the service is accessible externally
-    # and pass the dynamically assigned port.
-    mcp.run(transport='sse', host="0.0.0.0", port=port)
+    # 3. Use Uvicorn to run the app on 0.0.0.0
+    # This ensures Render can bind to the port and route traffic
+    uvicorn.run(app, host="0.0.0.0", port=port)
