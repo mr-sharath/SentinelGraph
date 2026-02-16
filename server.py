@@ -6,8 +6,8 @@ from mcp.server.fastmcp import FastMCP
 from neo4j import GraphDatabase, exceptions
 
 # Setup professional logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("SentinelGraph-Production")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 load_dotenv()
 
@@ -27,12 +27,30 @@ class Neo4jManager:
         self.uri = os.getenv("NEO4J_URI")
         self.user = os.getenv("NEO4J_USERNAME") 
         self.password = os.getenv("NEO4J_PASSWORD")
+        if not all([self.uri, self.user, self.password]):
+            logger.error("CRITICAL: One or more Neo4j environment variables are MISSING!")
+        else:
+            logger.info(f"Neo4jManager initialized with URI: {self.uri}")
         self._driver = None
 
     @property
     def driver(self):
         if self._driver is None:
-            self._driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+            try:
+                # Log 2: Track the start of the driver creation
+                logger.info("Attempting to create Neo4j driver...")
+                self._driver = GraphDatabase.driver(
+                    self.uri, 
+                    auth=(self.user, self.password),
+                    # Optimization: Fail fast to avoid Dify timeouts
+                    connection_timeout=15.0, 
+                    max_connection_lifetime=30 * 60
+                )
+                # Log 3: Confirm driver object created
+                logger.info("Neo4j driver created successfully.")
+            except Exception as e:
+                logger.error(f"Failed to create Neo4j driver: {e}")
+                raise
         return self._driver
 
     def execute_read(self, cypher: str, parameters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
@@ -101,6 +119,11 @@ def execute_cypher_search(cypher_query: str) -> str:
         return f"Query Results: {results}"
     except Exception as e:
         return f"Cypher Execution Error: {str(e)}"
+
+@mcp.tool()
+def echo_health() -> str:
+    """Verifies connectivity between Dify and Render without hitting Neo4j."""
+    return "SentinelGraph Engine: Connection Healthy."
 
 import uvicorn
 import os
