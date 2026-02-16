@@ -128,9 +128,17 @@ def echo_health() -> str:
 import uvicorn
 import os
 
+from starlette.responses import JSONResponse
+
+# Add this route to your Starlette app inside the 'if __name__ == "__main__":' block
 if __name__ == "__main__":
-    # Get the underlying Starlette app for SSE transport
     app = mcp.sse_app()
+    
+    # NEW: Add a dedicated endpoint for Dify's Custom Tool discovery
+    # This prevents the infinite spinning by giving Dify a fast JSON response
+    @app.route("/health")
+    async def health_status(request):
+        return JSONResponse({"status": "ready", "engine": "SentinelGraph"})
     
     # 1. FIX: Override the host validation security for Render deployment
     # We tell the transport layer to trust our Render domain and Dify
