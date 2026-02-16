@@ -46,7 +46,6 @@ class Neo4jManager:
 db = Neo4jManager()
 
 @mcp.tool()
-@mcp.tool()
 def get_graph_schema() -> str:
     """
     Optimized Schema Discovery: Retrieves labels, relationships, and properties 
@@ -54,7 +53,6 @@ def get_graph_schema() -> str:
     """
     logger.info("Performing high-speed schema discovery...")
     
-    # This single query replaces the previous three separate calls
     combined_query = """
     CALL db.labels() YIELD label
     WITH collect(label) AS node_labels
