@@ -46,38 +46,38 @@ class Neo4jManager:
 db = Neo4jManager()
 
 @mcp.tool()
+@mcp.tool()
 def get_graph_schema() -> str:
     """
-    DYNAMIC SCHEMA DISCOVERY: Returns all Node Labels, Relationship Types, 
-    and a sample of properties for each. Use this FIRST to understand the graph structure.
+    Optimized Schema Discovery: Retrieves labels, relationships, and properties 
+    in a single, high-speed database call.
     """
-    logger.info("LLM requested graph schema...")
+    logger.info("Performing high-speed schema discovery...")
     
-    # 1. Get Labels
-    labels = db.execute_read("CALL db.labels()")
-    labels_list = [l['label'] for l in labels]
-    
-    # 2. Get Relationships
-    rels = db.execute_read("CALL db.relationshipTypes()")
-    rels_list = [r['relationshipType'] for r in rels]
-    
-    # 3. Get Sample Properties (Generic Introspection)
-    prop_query = """
-    MATCH (n) 
-    WITH labels(n) AS labels, keys(n) AS keys 
-    UNWIND labels AS label 
-    UNWIND keys AS key 
-    RETURN DISTINCT label, collect(DISTINCT key) AS properties
+    # This single query replaces the previous three separate calls
+    combined_query = """
+    CALL db.labels() YIELD label
+    WITH collect(label) AS node_labels
+    CALL db.relationshipTypes() YIELD relationshipType
+    WITH node_labels, collect(relationshipType) AS rel_types
+    MATCH (n)
+    WITH node_labels, rel_types, labels(n) AS node_labels_instance, keys(n) AS keys
+    UNWIND node_labels_instance AS label
+    UNWIND keys AS key
+    WITH node_labels, rel_types, label, collect(DISTINCT key) AS properties
+    RETURN {
+        node_labels: node_labels,
+        relationship_types: rel_types,
+        node_properties: collect({label: label, properties: properties})
+    } AS schema
     """
-    props = db.execute_read(prop_query)
-    
-    schema_info = {
-        "node_labels": labels_list,
-        "relationship_types": rels_list,
-        "node_properties": {p['label']: p['properties'] for p in props}
-    }
-    
-    return f"Current Enterprise Schema: {schema_info}"
+    try:
+        result = db.execute_read(combined_query)
+        schema_info = result[0]['schema'] if result else "Graph is currently empty."
+        return f"Current Enterprise Schema: {schema_info}"
+    except Exception as e:
+        logger.error(f"Schema discovery failed: {e}")
+        return f"Error retrieving schema: {str(e)}"
 
 @mcp.tool()
 def execute_cypher_search(cypher_query: str) -> str:
