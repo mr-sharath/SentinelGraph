@@ -11,8 +11,15 @@ logger = logging.getLogger("SentinelGraph-Production")
 
 load_dotenv()
 
-# Initialize FastMCP Server
-mcp = FastMCP("SentinelGraph-Engine")
+from mcp.server.transport_security import TransportSecuritySettings
+
+# Initialize FastMCP with DNS rebinding protection DISABLED
+mcp = FastMCP(
+    "SentinelGraph-Engine",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False
+    )
+)
 
 # Neo4j Connection Logic
 class Neo4jManager:
@@ -111,4 +118,10 @@ if __name__ == "__main__":
     logger.info(f"Production Launch: SentinelGraph SSE Server on port {port}")
     
     # 3. Use Uvicorn with a clean configuration
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=port,
+        proxy_headers=True,               # Trust Render's proxy headers
+        forwarded_allow_ips='*'           # Allow the proxy to forward the Host
+    )
