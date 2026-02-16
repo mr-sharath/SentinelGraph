@@ -99,13 +99,16 @@ import uvicorn
 import os
 
 if __name__ == "__main__":
-    # 1. Get the underlying Starlette app for SSE transport
-    # The method is sse_app(), which is specifically for this purpose
+    # Get the underlying Starlette app for SSE transport
     app = mcp.sse_app()
     
-    # 2. Get the Port from Render's environment (standard practice)
-    port = int(os.getenv("PORT", 8000))
+    # 1. FIX: Override the host validation security for Render deployment
+    # We tell the transport layer to trust our Render domain and Dify
+    os.environ["MCP_TRANSPORT_ALLOWED_HOSTS"] = "sentinelgraph.onrender.com,cloud.dify.ai"
     
-    # 3. Use Uvicorn to run the app on 0.0.0.0
-    # This ensures Render can bind to the port and route traffic
+    # 2. Bind to 0.0.0.0 for external cloud access
+    port = int(os.getenv("PORT", 10000))
+    logger.info(f"Production Launch: SentinelGraph SSE Server on port {port}")
+    
+    # 3. Use Uvicorn with a clean configuration
     uvicorn.run(app, host="0.0.0.0", port=port)
